@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 
 public class SphericalPlayerActivity extends AppCompatActivity {
+    // ***HERE IS THE SAMPLE_VIDEO_PATH***
     private final String SAMPLE_VIDEO_PATH =
             "android.resource://com.oculus.sample/raw/" + R.raw.sample360;
 

@@ -16,6 +16,8 @@ package com.oculus.sample.gles;
  * limitations under the License.
  */
 
+import android.util.Log;
+
 import java.nio.ShortBuffer;
 
 import java.lang.Math;
@@ -23,6 +25,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
+
+import static com.oculus.sample.gles.ShaderProgram.TAG;
 
 /*
  * Class for generating a sphere model for given input params
@@ -75,6 +79,9 @@ public class Sphere {
             mIndices[i] = ByteBuffer.allocateDirect(mNumIndices[i] * SHORT_SIZE)
                     .order(ByteOrder.nativeOrder()).asShortBuffer();
         }
+
+        /*
+        //ORIGINAL, EQUIRECTANGULAR:
         // calling put for each float took too much CPU time, so put by line instead
         float[] vLineBuffer = new float[iMax * 5];
         for (int i = 0; i < iMax; i++) {
@@ -89,11 +96,113 @@ public class Sphere {
                 vLineBuffer[vertexBase + 1] = y + r * sini * cosj;
                 vLineBuffer[vertexBase + 2] = z + r * cosi;
                 // texture s,t
-                vLineBuffer[vertexBase + 3] = (float) j / (float) nSlices;
-                vLineBuffer[vertexBase + 4] = (1.0f - i) / (float)nSlices;
+                vLineBuffer[vertexBase + 3] = (float) j / (float) nSlices; //1.0f - ( ((float) j) / (float) nSlices);
+                vLineBuffer[vertexBase + 4] = (1.0f - i) / (float)nSlices; //(-nSlices+i+1) / (float)nSlices;
             }
             mVertices.put(vLineBuffer, 0, vLineBuffer.length);
         }
+        */
+
+        /*
+        //CubeFace f1 = new CubeFace(new float[] {0,0,r}, new float[] {0,r,0}, new float[] {5.0f/6.0f, -1.0f/4.0f});
+        //CubeFace f2 = new CubeFace(new float[] {0,0,-r}, new float[] {0,-r,0}, new float[] {1.0f/6.0f, -3.0f/4.0f});
+        //CubeFace f4 = new CubeFace(new float[] {r,0,0}, new float[] {0,r,0}, new float[] {5.0f/6.0f, -3.0f/4.0f});
+        // calling put for each float took too much CPU time, so put by line instead
+        float[] vLineBuffer = new float[iMax * 5];
+        for (int i = 0; i < iMax; i++) {
+            for (int j = 0; j < iMax; j++) {
+                int vertexBase = j * 5;
+                float sini = (float) Math.sin(angleStepI * i);
+                float sinj = (float) Math.sin(angleStepJ * j);
+                float cosi = (float) Math.cos(angleStepI * i);
+                float cosj = (float) Math.cos(angleStepJ * j);
+                //float tani = (float) sini/cosi;
+                float ds = sini / cosi * cosj;
+                float dt = sini / cosi * sinj;
+                // vertex x,y,z
+                float dx = x + r * sini * sinj;
+                vLineBuffer[vertexBase + 0] = dx;
+                float dy = y + r * sini * cosj;
+                vLineBuffer[vertexBase + 1] = dy;
+                float dz = z + r * cosi;
+                vLineBuffer[vertexBase + 2] = dz;
+                //float[] temp = f2.getSAndT(dx, dy, dz, i, j);
+
+                if (Math.abs(ds) <= 1.0f && Math.abs(dt) <= 1.0f && i < iMax / 2) {
+                    // top face
+                    vLineBuffer[vertexBase + 3] = (float) ((5.0f / 6.0f) + ds / 6.0f);
+                    vLineBuffer[vertexBase + 4] = (float) (1.0f / ((float) nSlices) - 0.25f + dt / 4.0f);
+                //} else if(temp!=null) {
+                //    vLineBuffer[vertexBase + 3] = temp[0];
+                //    vLineBuffer[vertexBase + 4] = temp[1];
+                //    Log.d(TAG, " temp: (" + temp[0] + ", " + temp[1]);
+                //    // WHY IS THIS INFINITY!?!?!?!?
+                } else {
+                    // texture s,t
+                    vLineBuffer[vertexBase + 3] = (float) j / (float) nSlices;
+                    vLineBuffer[vertexBase + 4] = (1.0f - i) / (float) nSlices;
+                }
+                Log.d(TAG, "x: " + vLineBuffer[vertexBase + 0] +
+                        " y: " + vLineBuffer[vertexBase + 1] +
+                        " z: " + vLineBuffer[vertexBase + 2] +
+                        " i: " + i +
+                        " j: " + j);
+                //" s: " + vLineBuffer[vertexBase + 3] +
+                //" t: " + vLineBuffer[vertexBase + 4]);
+            }
+            mVertices.put(vLineBuffer, 0, vLineBuffer.length);
+        }
+        */
+
+        Face.setFacesPerHeight(2);
+        Face.setFacesPerWidth(3);
+        Face.setnSlices(nSlices);
+        CubeFace f1 = new CubeFace(new float[] {0,0,r}, new float[] {0,-r,0}, new float[] {5.0f/6.0f, -1.0f/4.0f});
+        CubeFace f2 = new CubeFace(new float[] {0,0,-r}, new float[] {0,-r,0}, new float[] {1.0f/6.0f, -3.0f/4.0f});
+        CubeFace f3 = new CubeFace(new float[] {-r,0,0}, new float[] {0,-r,0}, new float[] {3.0f/6.0f, -3.0f/4.0f});
+        CubeFace f4 = new CubeFace(new float[] {r,0,0}, new float[] {0,r,0}, new float[] {5.0f/6.0f, -3.0f/4.0f});
+        CubeFace f5 = new CubeFace(new float[] {0,-r,0}, new float[] {r,0,0}, new float[] {1.0f/6.0f, -1.0f/4.0f});
+        CubeFace f6 = new CubeFace(new float[] {0,r,0}, new float[] {-r,0,0}, new float[] {3.0f/6.0f, -1.0f/4.0f});
+
+        CubeFace[] faces = new CubeFace[] {f1, f2, f3, f4, f5, f6};
+
+        // calling put for each float took too much CPU time, so put by line instead
+        float[] vLineBuffer = new float[iMax * 5];
+        for (int i = 0; i < iMax; i++) {
+            for (int j = 0; j < iMax; j++) {
+                int vertexBase = j * 5;
+                float sini = (float) Math.sin(angleStepI * i);
+                float sinj = (float) Math.sin(angleStepJ * j);
+                float cosi = (float) Math.cos(angleStepI * i);
+                float cosj = (float) Math.cos(angleStepJ * j);
+
+                // vertex x,y,z
+                float dx = x + r * sini * sinj;
+                float dy = y + r * sini * cosj;
+                float dz = z + r * cosi;
+                vLineBuffer[vertexBase + 0] = dx;
+                vLineBuffer[vertexBase + 1] = dy;
+                vLineBuffer[vertexBase + 2] = dz;
+                float ds = - sini / cosi * cosj;
+                float dt = sini / cosi * sinj;
+
+                for(CubeFace f : faces) {
+                    //remember, things may get overwritten if you have > 1 face in faces
+                    float[] temp = f.getSAndT(dx, dy, dz, ds, dt);
+                    if(temp!=null){
+                        vLineBuffer[vertexBase + 3] = temp[0];
+                        vLineBuffer[vertexBase + 4] = temp[1];
+                        break;
+                    }
+                    //else {
+                        //vLineBuffer[vertexBase + 3] = (float) j / (float) nSlices;
+                        //vLineBuffer[vertexBase + 4] = (1.0f - i) / (float) nSlices;
+                    //}
+                }
+            }
+            mVertices.put(vLineBuffer, 0, vLineBuffer.length);
+        }
+
         short[] indexBuffer = new short[max(mNumIndices)];
         int index = 0;
         int bufferNum = 0;
